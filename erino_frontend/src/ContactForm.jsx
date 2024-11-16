@@ -1,44 +1,46 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import axios from 'axios'
-import { Button, TextField, Typography, Card as MuiCard, Box } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import {
+    Button,
+    TextField,
+    Typography,
+    Card as MuiCard,
+    Box,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    IconButton,
+} from "@mui/material";
 import { styled } from "@mui/system";
+import { Delete, Edit } from "@mui/icons-material";
 
 const Card = styled(MuiCard)(({ theme }) => ({
     display: "flex",
     flexDirection: "column",
     alignSelf: "center",
     width: "100%",
-    padding: theme.spacing(4),
+    padding: theme.spacing(3),
     gap: theme.spacing(2),
     margin: "auto",
     [theme.breakpoints.up("sm")]: {
-        maxWidth: "450px",
+        maxWidth: "400px",
     },
-    boxShadow:
-        "hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px",
-    ...theme.applyStyles("dark", {
-        boxShadow:
-            "hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px",
-    }),
 }));
 
 const RegisterContainer = styled(Box)(({ theme }) => ({
-    height: "100%",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
     padding: theme.spacing(2),
-    [theme.breakpoints.up("sm")]: {
-        padding: theme.spacing(4),
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: theme.spacing(2),
+    [theme.breakpoints.up("md")]: {
+        flexDirection: "row",
+        justifyContent: "space-between",
     },
-    backgroundImage:
-        "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))",
-    backgroundRepeat: "no-repeat",
-    ...theme.applyStyles("dark", {
-        backgroundImage:
-            "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
-    }),
 }));
 
 export default function Register() {
@@ -48,22 +50,111 @@ export default function Register() {
     const [phone, setPhone] = useState("");
     const [company, setCompany] = useState("");
     const [jobtitle, setJobtitle] = useState("");
+    const [users, setUsers] = useState([]);
+    const [editinguserID, setEditinguserID] = useState(null);
+
+    // Fetch users from the backend
+    const fetchUsers = () => {
+        axios
+            .get("http://localhost:3000/contacts")
+            .then((response) => {
+                setUsers(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching users:", error);
+            });
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const resetForm = () => {
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setPhone("");
+        setCompany("");
+        setJobtitle("");
+        setEditinguserID(null);
+    };
+
+    const handleRegister = () => {
+        if (editinguserID) {
+            // Update user
+            axios
+                .put(`http://localhost:3000/contacts/${editinguserID}`, {
+                    firstname,
+                    lastname,
+                    email,
+                    phone,
+                    company,
+                    jobtitle,
+                })
+                .then(() => {
+                    alert("User updated successfully!");
+                    fetchUsers(); // Refresh the user list
+                    resetForm();
+                })
+                .catch((error) => console.error("Error updating user:", error));
+        } else {
+            // Add new user
+            axios
+                .post("http://localhost:3000/contacts", {
+                    firstname,
+                    lastname,
+                    email,
+                    phone,
+                    company,
+                    jobtitle,
+                })
+                .then((response) => {
+                    alert("User registered successfully!");
+                    setUsers([...users, response.data]); // Add new user to the list
+                    resetForm();
+                })
+                .catch((error) => {
+                    if (error.response && error.response.status === 409) {
+                        alert("This user already exists!");
+                    } else {
+                        console.error("Error adding user:", error);
+                    }
+                });
+        }
+    };
+
+    const handleDelete = (id) => {
+        axios
+            .delete(`http://localhost:3000/contacts/${id}`)
+            .then(() => {
+                setUsers(users.filter((user) => user._id !== id));
+                alert("User deleted successfully!");
+            })
+            .catch((error) => console.error("Error deleting user:", error));
+    };
+
+    const handleEdit = (user) => {
+        setEditinguserID(user._id);
+        setFirstName(user.firstname);
+        setLastName(user.lastname);
+        setEmail(user.email);
+        setPhone(user.phone);
+        setCompany(user.company);
+        setJobtitle(user.jobtitle);
+    };
 
     return (
         <RegisterContainer>
+            {/* User Form */}
             <Card variant="outlined">
-                <Typography
-                    component="h1"
-                    variant="h4"
-                    sx={{ textAlign: "center", fontSize: "clamp(1.8rem, 8vw, 2.15rem)" }}
-                >
-                    Complete the User Form
+                <Typography component="h1" variant="h5" sx={{ textAlign: "center" }}>
+                    User Form
                 </Typography>
                 <TextField
                     label="First Name"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    margin="dense"
                     value={firstname}
                     onChange={(e) => setFirstName(e.target.value)}
                 />
@@ -71,7 +162,7 @@ export default function Register() {
                     label="Last Name"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    margin="dense"
                     value={lastname}
                     onChange={(e) => setLastName(e.target.value)}
                 />
@@ -79,7 +170,7 @@ export default function Register() {
                     label="Email"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    margin="dense"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                 />
@@ -87,7 +178,7 @@ export default function Register() {
                     label="Phone"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    margin="dense"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                 />
@@ -95,7 +186,7 @@ export default function Register() {
                     label="Company"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    margin="dense"
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
                 />
@@ -103,36 +194,64 @@ export default function Register() {
                     label="Job Title"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    margin="dense"
                     value={jobtitle}
                     onChange={(e) => setJobtitle(e.target.value)}
                 />
                 <Button
                     variant="contained"
                     fullWidth
-                    // onClick={()=>{
-                    //     axios.post("http://localhost:3000/ngo/register", {
-                    //         name:name,
-                    //         email:email,
-                    //         address:address,
-                    //         location:location,
-                    //         phone:phone,
-                    //         password:password
-                    //     }).then((response)=>{
-                    //         console.log(response.data);
-                    //         if(response.status == 205){
-                    //             alert("this ngo exists already!!")
-                    //         }
-                    //         else{
-                    //             alert('registered ngo successfully!!!');
-                    //         }
-                    //     }).then(handleregister);
-                    // }}
-                    style={{ marginTop: 20, backgroundColor: "#4CAF50" }}
+                    onClick={handleRegister}
+                    sx={{ mt: 2, backgroundColor: "#4CAF50" }}
                 >
-                    Register
+                    {editinguserID ? "Update" : "Register"}
                 </Button>
             </Card>
+
+            {/* Users Table */}
+            <TableContainer component={Paper} sx={{ flex: 1, maxWidth: "800px", overflowX: "auto" }}>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>First Name</TableCell>
+                            <TableCell>Last Name</TableCell>
+                            <TableCell>Email</TableCell>
+                            <TableCell>Phone</TableCell>
+                            <TableCell>Company</TableCell>
+                            <TableCell>Job Title</TableCell>
+                            <TableCell>Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {users.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={7} align="center">
+                                    No users found.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            users.map((user, index) => (
+                                <TableRow key={index}>
+                                    <TableCell>{user.firstname}</TableCell>
+                                    <TableCell>{user.lastname}</TableCell>
+                                    <TableCell>{user.email}</TableCell>
+                                    <TableCell>{user.phone}</TableCell>
+                                    <TableCell>{user.company}</TableCell>
+                                    <TableCell>{user.jobtitle}</TableCell>
+                                    <TableCell>
+                                        <IconButton onClick={() => handleEdit(user)}>
+                                            <Edit />
+                                        </IconButton>
+                                        <IconButton onClick={() => handleDelete(user._id)}>
+                                            <Delete />
+                                        </IconButton>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
         </RegisterContainer>
-    )
+    );
 }

@@ -14,7 +14,8 @@ function App() {
       
       <Router>
           <Routes>
-            <Route path="/" element={<Register />} />
+            <Route path="/contacts" element={<Register />} />
+           
           </Routes>
       </Router>
 
